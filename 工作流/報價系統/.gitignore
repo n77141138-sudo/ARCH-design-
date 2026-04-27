@@ -1,0 +1,19 @@
+# Environments
+.env
+__pycache__/
+
+# ⚠️ 憑證與金鑰 (絕對不可上傳至 GitHub)
+*.json
+!config.json
+
+# (加強確認) 請確保任何包含 credentials 或是 GCP 私鑰的 JSON 都不會被上傳
+credentials.json
+arch-quote-system-*.json
+quotes_db.json
+
+# Local database and uploaded files (保護客戶隱私與報價資料)
+01_廠商報價單(輸入)/
+02_對業主報價單(輸出)/
+03_審核用彙整表/
+uploads/
+

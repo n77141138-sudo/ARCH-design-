@@ -1,0 +1,10 @@
+{
+  "project_name": "盧公館 J042 AA3-7F 室內裝修工程",
+  "client_name": "盧公館業主",
+  "markup_rate": 1.5,
+  "output_format": [
+    "excel",
+    "markdown"
+  ],
+  "notes": "利潤率 20%，客戶報價 = 廠商成本 × 1.2"
+}
