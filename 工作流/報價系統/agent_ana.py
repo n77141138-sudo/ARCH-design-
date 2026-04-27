@@ -24,9 +24,9 @@ from openpyxl.utils import get_column_letter
 
 # ─── 路徑設定 ─────────────────────────────────────────────
 BASE_DIR = Path(__file__).parent
-INPUT_DIR  = BASE_DIR / "01_廠商報價單(輸入)"
-OUTPUT_DIR = BASE_DIR / "02_對業主報價單(輸出)"
-REVIEW_DIR = BASE_DIR / "03_審核用彙整表"
+INPUT_DIR  = BASE_DIR / "01_vendor_quotes_input"
+OUTPUT_DIR = BASE_DIR / "02_client_quotes_output"
+REVIEW_DIR = BASE_DIR / "03_review_summaries"
 
 for d in [INPUT_DIR, OUTPUT_DIR, REVIEW_DIR]:
     d.mkdir(parents=True, exist_ok=True)
@@ -112,7 +112,7 @@ def load_vendor_excel(xlsx_path: Path) -> list[dict]:
     df = df.dropna(subset=["name"]).fillna("")
 
     vendor_name = xlsx_path.stem
-    category    = xlsx_path.parent.name if xlsx_path.parent.name != "01_廠商報價單(輸入)" else "其他"
+    category    = xlsx_path.parent.name if xlsx_path.parent.name != "01_vendor_quotes_input" else "其他"
 
     items = []
     for _, row in df.iterrows():

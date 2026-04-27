@@ -56,9 +56,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-INPUT_DIR  = BASE_DIR / "01_廠商報價單(輸入)"
-OUTPUT_DIR = BASE_DIR / "02_對業主報價單(輸出)"
-REVIEW_DIR = BASE_DIR / "03_審核用彙整表"
+INPUT_DIR  = BASE_DIR / "01_vendor_quotes_input"
+OUTPUT_DIR = BASE_DIR / "02_client_quotes_output"
+REVIEW_DIR = BASE_DIR / "03_review_summaries"
 DB_PATH = BASE_DIR / "quotes_db.json"
 CONFIG_PATH = BASE_DIR / "config.json"
 FLOORPLAN_DIR = BASE_DIR / "uploads" / "floorplans"
@@ -203,7 +203,7 @@ if selected_category == "預售客變":
                         except Exception as e:
                             st.error(f"分析失敗：{e}")
             
-            # 手動設定與產出客變報價
+            # 手陪設定與產出客變報價
             pings = current_info.get("estimated_pings", 0)
             ping_price = st.number_input("設定每坪單價 (客變設計費/工程費)", value=3000, step=500)
             
@@ -238,8 +238,8 @@ if selected_category == "預售客變":
                         "客戶地址未提供", datetime.datetime.now().strftime("%Y/%m/%d"), 30, OUTPUT_DIR / md_filename
                     )
                     
-                    db[selected_code]["md_path"] = f"02_對業主報價單(輸出)/{md_filename}"
-                    db[selected_code]["xlsx_path"] = f"02_對業主報價單(輸出)/{quote_filename}"
+                    db[selected_code]["md_path"] = f"02_client_quotes_output/{md_filename}"
+                    db[selected_code]["xlsx_path"] = f"02_client_quotes_output/{quote_filename}"
                     db[selected_code]["status"] = "已完成"
                     save_db(db)
                     st.success("🎉 客變報價單已產生，客戶可於前台查詢。")
