@@ -5,3 +5,6 @@ google-genai
 PyMuPDF
 Pillow
 python-dotenv
+gspread
+google-api-python-client
+google-auth
