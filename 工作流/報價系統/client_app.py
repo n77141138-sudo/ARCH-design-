@@ -148,19 +148,20 @@ with tab1:
 
                 # 優先直接從記憶體上傳至 Google Drive（Streamlit Cloud 環境）
                 st.info("正在同步圖面至雲端...")
-                drive_url = cloud_manager.upload_bytes_to_drive(file_bytes, safe_filename)
+                drive_url, drive_error = cloud_manager.upload_bytes_to_drive(file_bytes, safe_filename)
 
                 # 若 Drive 上傳失敗，嘗試寫本機備份
                 local_path_str = ""
                 if not drive_url:
+                    st.error(f"❌ 雲端上傳失敗：{drive_error}")
                     try:
                         save_path = FLOORPLAN_DIR / safe_filename
                         with open(save_path, "wb") as f:
                             f.write(file_bytes)
                         local_path_str = str(save_path)
-                        st.warning("⚠️ 雲端上傳失敗，已備份至本機。請確認 Google 憑證設定。")
+                        st.warning("⚠️ 已備份至本機，但後台將無法跨機器查看圖面。")
                     except Exception as save_err:
-                        st.warning(f"⚠️ 雲端與本機儲存皆失敗：{save_err}")
+                        st.warning(f"⚠️ 本機儲存也失敗：{save_err}")
 
                 db = load_db()
                 db[new_code] = {
