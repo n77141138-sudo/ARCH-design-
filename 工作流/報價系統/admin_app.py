@@ -167,32 +167,41 @@ st.write("---")
 if selected_category == "預售客變":
     st.subheader("📐 客變圖面 AI 估算區")
     
-    if current_info and ("floorplan_path" in current_info or "floorplan_drive_url" in current_info):
-        # Resolve floorplan path — stored value may be an absolute path from another machine
+    if current_info and (
+        current_info.get("floorplan_b64") or
+        current_info.get("floorplan_drive_url") or
+        current_info.get("floorplan_path")
+    ):
         raw_fp = current_info.get("floorplan_path", "")
-        fp_path = Path(raw_fp) if raw_fp else None  # treat as absolute path directly
+        fp_path = Path(raw_fp) if raw_fp else None
         drive_url = current_info.get("floorplan_drive_url", "")
+        floorplan_b64 = current_info.get("floorplan_b64", "")
         phone_display = current_info.get("client_phone") or current_info.get("phone", "未提供")
-        
+
         col_img, col_ai = st.columns(2)
         with col_img:
             st.write(f"**客戶：{current_info.get('client_name')} (Tel: {phone_display})**")
-            
-            # Priority 1: show via Google Drive URL (works cross-machine)
-            if drive_url:
-                # Convert Drive share link to direct thumbnail if possible
+
+            # Priority 1: base64 圖片（最新機制，無需 Drive）
+            if floorplan_b64:
+                try:
+                    import base64 as _b64
+                    img_bytes = _b64.b64decode(floorplan_b64)
+                    st.image(img_bytes, caption="客戶上傳的圖面", use_container_width=True)
+                except Exception as decode_err:
+                    st.warning(f"⚠️ 圖面解碼失敗：{decode_err}")
+            # Priority 2: Google Drive URL
+            elif drive_url:
                 st.link_button("📎 查看已上傳圖面 (Google Drive)", drive_url)
                 st.caption("圖面已同步至雲端，請點擊上方連結查看。")
-            # Priority 2: try local absolute path
+            # Priority 3: 本機絕對路徑
             elif fp_path and fp_path.exists():
                 if fp_path.suffix.lower() in ['.jpg', '.png', '.jpeg']:
                     st.image(str(fp_path), caption="客戶上傳的圖面", use_container_width=True)
                 else:
                     st.info(f"已上傳 PDF 圖面：{fp_path.name}")
             else:
-                st.warning("⚠️ 圖面尚未同步至雲端，且本機路徑不存在。請確認 Google Drive 上傳是否成功。")
-                if fp_path:
-                    st.caption(f"原始路徑：{fp_path}")
+                st.warning("⚠️ 圖面資料不存在，可能尚未上傳成功。")
                 
         with col_ai:
             if st.button("🤖 啟動 AI 比例尺分析", type="primary"):
@@ -200,8 +209,8 @@ if selected_category == "預售客變":
                     st.error("請先設定 API Key！")
                 elif not ocr_parser:
                     st.error("OCR 模組載入失敗")
-                elif fp_path is None or not fp_path.exists():
-                    st.error("⚠️ 本機找不到圖面檔案，無法執行 AI 分析。圖面必須在此機器上才能進行分析。")
+                elif not floorplan_b64 and (fp_path is None or not fp_path.exists()):
+                    st.error("⚠️ 本機找不到圖面檔案，無法執行 AI 分析。")
                 else:
                     with st.spinner("AI 正在分析大門比例與計算總坪數..."):
                         try:
