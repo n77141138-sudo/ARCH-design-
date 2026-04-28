@@ -352,7 +352,8 @@ def export_client_quote_excel(
     project_address: str,
     quote_date: str,
     validity_days: int,
-    output_path: Path
+    output_path: Path,
+    project_category: str = ""
 ):
     wb = Workbook()
     ws = wb.active
@@ -458,32 +459,31 @@ def export_client_quote_excel(
 
     # ── 總計
     row_num += 1
-    management_fee = grand_total * 0.1
-    untaxed_total = grand_total + management_fee
-    tax = untaxed_total * 0.05
-    final_total = untaxed_total + tax
     
-    # 1. 合計金額 (未稅)
+    # 根據分類決定是否收取工程管理費
+    if project_category in ["室內設計", "預售客變"]:
+        management_fee = 0
+    else:
+        management_fee = grand_total * 0.1
+        
+    final_total = grand_total + management_fee
+    
+    # 1. 合計金額
     ws.merge_cells(f"A{row_num}:F{row_num}")
-    ws.cell(row=row_num, column=1, value="合計金額 (未稅)").alignment = Alignment(horizontal="right")
+    ws.cell(row=row_num, column=1, value="合計金額").alignment = Alignment(horizontal="right")
     ws.cell(row=row_num, column=7, value=grand_total).number_format = "#,##0"
     row_num += 1
     
-    # 2. 工程管理費 (10%)
-    ws.merge_cells(f"A{row_num}:F{row_num}")
-    ws.cell(row=row_num, column=1, value="工程管理費 (10%)").alignment = Alignment(horizontal="right")
-    ws.cell(row=row_num, column=7, value=management_fee).number_format = "#,##0"
-    row_num += 1
+    # 2. 工程管理費 (如果有)
+    if management_fee > 0:
+        ws.merge_cells(f"A{row_num}:F{row_num}")
+        ws.cell(row=row_num, column=1, value="工程管理費 (10%)").alignment = Alignment(horizontal="right")
+        ws.cell(row=row_num, column=7, value=management_fee).number_format = "#,##0"
+        row_num += 1
     
-    # 3. 營業稅 (5%)
+    # 3. 總計金額
     ws.merge_cells(f"A{row_num}:F{row_num}")
-    ws.cell(row=row_num, column=1, value="加值型營業稅 (5%)").alignment = Alignment(horizontal="right")
-    ws.cell(row=row_num, column=7, value=tax).number_format = "#,##0"
-    row_num += 1
-    
-    # 4. 總計金額 (含稅)
-    ws.merge_cells(f"A{row_num}:F{row_num}")
-    total_label = ws.cell(row=row_num, column=1, value="總計金額 (含稅)")
+    total_label = ws.cell(row=row_num, column=1, value="總計金額")
     total_label.font      = Font(name=FONT_NAME, size=11, bold=True, color=COLOR_WHITE)
     total_label.fill      = PatternFill("solid", fgColor=COLOR_TOTAL)
     total_label.alignment = Alignment(horizontal="right", vertical="center")
@@ -500,8 +500,13 @@ def export_client_quote_excel(
     # ── 備註列
     row_num += 2
     ws.merge_cells(f"A{row_num}:G{row_num}")
-    note = ws.cell(row=row_num, column=1,
-                   value="※ 以上報價均為新台幣，不含5%加值稅，內含10%工程管理費用。實際施工以現場丈量確認為主。")
+    
+    if management_fee > 0:
+        note_text = "※ 以上報價均為新台幣，內含10%工程管理費用。實際施工以現場丈量確認為主。"
+    else:
+        note_text = "※ 以上報價均為新台幣。實際施工以現場丈量確認為主。"
+        
+    note = ws.cell(row=row_num, column=1, value=note_text)
     note.font      = Font(name=FONT_NAME, size=9, color="888888")
     note.alignment = Alignment(horizontal="left", vertical="center")
     ws.row_dimensions[row_num].height = 16
@@ -520,7 +525,8 @@ def export_markdown_quote(
     project_address: str,
     quote_date: str,
     validity_days: int,
-    output_path: Path
+    output_path: Path,
+    project_category: str = ""
 ) -> str:
     """
     輸出標準 Markdown 表格報價單。
@@ -609,10 +615,12 @@ def export_markdown_quote(
         close_table(current_category, cat_total)
 
     # 總計
-    management_fee = grand_total * 0.1
-    untaxed_total = grand_total + management_fee
-    tax = untaxed_total * 0.05
-    final_total = untaxed_total + tax
+    if project_category in ["室內設計", "預售客變"]:
+        management_fee = 0
+    else:
+        management_fee = grand_total * 0.1
+        
+    final_total = grand_total + management_fee
     
     lines.append(f"---")
     lines.append(f"")
@@ -620,13 +628,18 @@ def export_markdown_quote(
     lines.append(f"")
     lines.append(f"| 項目 | 金額 |")
     lines.append(f"| :--- | ---: |")
-    lines.append(f"| 合計金額 (未稅) | NT$ {grand_total:,.0f} |")
-    lines.append(f"| 工程管理費 (10%) | NT$ {management_fee:,.0f} |")
-    lines.append(f"| 未稅總計 | NT$ {untaxed_total:,.0f} |")
-    lines.append(f"| 營業稅 (5%) | NT$ {tax:,.0f} |")
-    lines.append(f"| **總計金額 (含稅)** | **NT$ {final_total:,.0f}** |")
+    lines.append(f"| 合計金額 | NT$ {grand_total:,.0f} |")
+    
+    if management_fee > 0:
+        lines.append(f"| 工程管理費 (10%) | NT$ {management_fee:,.0f} |")
+        
+    lines.append(f"| **總計金額** | **NT$ {final_total:,.0f}** |")
     lines.append(f"")
-    lines.append(f"> ※ 以上報價均為新台幣，內含10%工程管理費用。實際施工以現場丈量確認為主。")
+    
+    if management_fee > 0:
+        lines.append(f"> ※ 以上報價均為新台幣，內含10%工程管理費用。實際施工以現場丈量確認為主。")
+    else:
+        lines.append(f"> ※ 以上報價均為新台幣。實際施工以現場丈量確認為主。")
 
 
     md_content = "\n".join(lines)

@@ -165,7 +165,16 @@ else:
     if current_info.get("markdown_quote"):
         st.markdown("---")
         st.subheader("📄 該案件目前報價單預覽")
-        st.markdown(current_info["markdown_quote"])
+        # 加入 CSS 確保在黑底模式下字體為白色
+        st.markdown("""
+        <style>
+        .quote-preview, .quote-preview table, .quote-preview th, .quote-preview td {
+            color: white !important;
+            border-color: white !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        st.markdown(f'<div class="quote-preview">\n\n{current_info["markdown_quote"]}\n\n</div>', unsafe_allow_html=True)
 
 st.write("---")
 
@@ -265,11 +274,13 @@ if selected_category == "預售客變":
                     
                     agent_ana.export_client_quote_excel(
                         virtual_vendor, 1.0, current_info.get("project_name", "客變專案"),
-                        "客戶地址未提供", datetime.datetime.now().strftime("%Y/%m/%d"), 30, OUTPUT_DIR / quote_filename
+                        "客戶地址未提供", datetime.datetime.now().strftime("%Y/%m/%d"), 30, OUTPUT_DIR / quote_filename,
+                        project_category=selected_category
                     )
                     md_content = agent_ana.export_markdown_quote(
                         virtual_vendor, 1.0, current_info.get("project_name", "客變專案"),
-                        "客戶地址未提供", datetime.datetime.now().strftime("%Y/%m/%d"), 30, OUTPUT_DIR / md_filename
+                        "客戶地址未提供", datetime.datetime.now().strftime("%Y/%m/%d"), 30, OUTPUT_DIR / md_filename,
+                        project_category=selected_category
                     )
                     
                     db[selected_code]["md_path"] = f"02_client_quotes_output/{md_filename}"
@@ -452,8 +463,8 @@ with col_form:
                 
                 cost, client_total = agent_ana.export_review_excel(vendors, markup_rate, p_name, REVIEW_DIR / review_filename)
                 # 套用新參數
-                agent_ana.export_client_quote_excel(vendors, markup_rate, p_name, p_addr, q_date.strftime("%Y/%m/%d"), q_valid, OUTPUT_DIR / quote_filename)
-                md_content = agent_ana.export_markdown_quote(vendors, markup_rate, p_name, p_addr, q_date.strftime("%Y/%m/%d"), q_valid, OUTPUT_DIR / md_filename)
+                agent_ana.export_client_quote_excel(vendors, markup_rate, p_name, p_addr, q_date.strftime("%Y/%m/%d"), q_valid, OUTPUT_DIR / quote_filename, project_category=selected_category)
+                md_content = agent_ana.export_markdown_quote(vendors, markup_rate, p_name, p_addr, q_date.strftime("%Y/%m/%d"), q_valid, OUTPUT_DIR / md_filename, project_category=selected_category)
                 
                 # 上傳 Excel 至雲端
                 st.info("正在同步報價單至雲端硬碟...")

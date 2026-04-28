@@ -107,6 +107,14 @@ def render_query_section(category: str):
                 else:
                     st.success(f"您的案件狀態：{record.get('status')}")
                     if "markdown_quote" in record:
+                        st.markdown("""
+                        <style>
+                        table {
+                            margin-left: auto;
+                            margin-right: auto;
+                        }
+                        </style>
+                        """, unsafe_allow_html=True)
                         st.markdown(record["markdown_quote"])
                     excel_url = record.get("excel_drive_url")
                     if excel_url:
