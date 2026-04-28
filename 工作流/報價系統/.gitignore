@@ -12,8 +12,7 @@ arch-quote-system-*.json
 quotes_db.json
 
 # Local database and uploaded files (保護客戶隱私與報價資料)
-01_廠商報價單(輸入)/
-02_對業主報價單(輸出)/
-03_審核用彙整表/
+01_vendor_quotes_input/
+02_client_quotes_output/
+03_review_summaries/
 uploads/
-
