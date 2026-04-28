@@ -160,6 +160,12 @@ if selected_option == "(新增案件)":
 else:
     selected_code = selected_option.split(" - ")[0]
     current_info = db.get(selected_code, {})
+    
+    # 全局預覽報價單 (只要該案件有報價單就顯示)
+    if current_info.get("markdown_quote"):
+        st.markdown("---")
+        st.subheader("📄 該案件目前報價單預覽")
+        st.markdown(current_info["markdown_quote"])
 
 st.write("---")
 
@@ -261,13 +267,14 @@ if selected_category == "預售客變":
                         virtual_vendor, 1.0, current_info.get("project_name", "客變專案"),
                         "客戶地址未提供", datetime.datetime.now().strftime("%Y/%m/%d"), 30, OUTPUT_DIR / quote_filename
                     )
-                    agent_ana.export_markdown_quote(
+                    md_content = agent_ana.export_markdown_quote(
                         virtual_vendor, 1.0, current_info.get("project_name", "客變專案"),
                         "客戶地址未提供", datetime.datetime.now().strftime("%Y/%m/%d"), 30, OUTPUT_DIR / md_filename
                     )
                     
                     db[selected_code]["md_path"] = f"02_client_quotes_output/{md_filename}"
                     db[selected_code]["xlsx_path"] = f"02_client_quotes_output/{quote_filename}"
+                    db[selected_code]["markdown_quote"] = md_content
                     db[selected_code]["status"] = "已完成"
                     save_db(db)
                     st.success("🎉 客變報價單已產生，客戶可於前台查詢。")
