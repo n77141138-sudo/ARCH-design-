@@ -85,7 +85,7 @@ def parse_quote_file(file_path: Path, api_key: str) -> dict:
         raise RuntimeError(f"AI 解析失敗: {str(e)}")
 
 
-def analyze_floorplan(file_path: Path, api_key: str) -> dict:
+def analyze_floorplan(file_path: Path = None, api_key: str = "", b64_string: str = "") -> dict:
     """分析客變圖面，推算坪數"""
     if not api_key:
         raise ValueError("請先在設定中輸入 Gemini API Key")
@@ -109,13 +109,22 @@ def analyze_floorplan(file_path: Path, api_key: str) -> dict:
     """
 
     images_to_process = []
-    suffix = file_path.suffix.lower()
-    if suffix == ".pdf":
-        images_to_process = extract_images_from_pdf(file_path)
-    elif suffix in [".jpg", ".jpeg", ".png"]:
-        images_to_process.append(Image.open(file_path))
+    
+    if b64_string:
+        import base64
+        import io
+        img_bytes = base64.b64decode(b64_string)
+        images_to_process.append(Image.open(io.BytesIO(img_bytes)))
+    elif file_path:
+        suffix = file_path.suffix.lower()
+        if suffix == ".pdf":
+            images_to_process = extract_images_from_pdf(file_path)
+        elif suffix in [".jpg", ".jpeg", ".png"]:
+            images_to_process.append(Image.open(file_path))
+        else:
+            raise ValueError(f"不支援的圖面格式: {suffix}")
     else:
-        raise ValueError(f"不支援的圖面格式: {suffix}")
+        raise ValueError("請提供圖檔路徑或 base64 字串")
 
     contents = [prompt] + images_to_process
 

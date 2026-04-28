@@ -214,7 +214,11 @@ if selected_category == "預售客變":
                 else:
                     with st.spinner("AI 正在分析大門比例與計算總坪數..."):
                         try:
-                            result = ocr_parser.analyze_floorplan(fp_path, api_key)
+                            if floorplan_b64:
+                                result = ocr_parser.analyze_floorplan(b64_string=floorplan_b64, api_key=api_key)
+                            else:
+                                result = ocr_parser.analyze_floorplan(file_path=fp_path, api_key=api_key)
+
                             st.session_state.api_tokens_used += result.get("tokens", 0)
                             
                             st.success("✅ 分析完成！")
