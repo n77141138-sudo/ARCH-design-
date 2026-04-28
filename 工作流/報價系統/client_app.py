@@ -143,13 +143,25 @@ with tab1:
                 st.error("請填寫姓名、電話並上傳圖面。")
             else:
                 new_code = generate_random_code()
-                save_path = FLOORPLAN_DIR / f"{new_code}_{uploaded_fp.name}"
-                with open(save_path, "wb") as f:
-                    f.write(uploaded_fp.getbuffer())
-                
+                file_bytes = uploaded_fp.getvalue()
+                safe_filename = f"{new_code}_{uploaded_fp.name}"
+
+                # 優先直接從記憶體上傳至 Google Drive（Streamlit Cloud 環境）
                 st.info("正在同步圖面至雲端...")
-                drive_url = cloud_manager.upload_file_to_drive(save_path)
-                
+                drive_url = cloud_manager.upload_bytes_to_drive(file_bytes, safe_filename)
+
+                # 若 Drive 上傳失敗，嘗試寫本機備份
+                local_path_str = ""
+                if not drive_url:
+                    try:
+                        save_path = FLOORPLAN_DIR / safe_filename
+                        with open(save_path, "wb") as f:
+                            f.write(file_bytes)
+                        local_path_str = str(save_path)
+                        st.warning("⚠️ 雲端上傳失敗，已備份至本機。請確認 Google 憑證設定。")
+                    except Exception as save_err:
+                        st.warning(f"⚠️ 雲端與本機儲存皆失敗：{save_err}")
+
                 db = load_db()
                 db[new_code] = {
                     "category": "預售客變",
@@ -157,12 +169,16 @@ with tab1:
                     "project_name": "客變申請案件",
                     "client_name": client_name,
                     "client_phone": client_phone,
-                    "floorplan_path": str(save_path),
-                    "floorplan_drive_url": drive_url,
+                    "floorplan_path": local_path_str,
+                    "floorplan_drive_url": drive_url or "",
                     "status": "已提交，等待 AI 分析中"
                 }
                 save_db(db)
-                st.success(f"🎉 上傳成功！\n\n您的專屬查詢單號為：**{new_code}**\n\n請務必記下此單號，日後可於右側查詢估價結果。")
+
+                if drive_url:
+                    st.success(f"🎉 上傳成功！\n\n您的專屬查詢單號為：**{new_code}**\n\n請務必記下此單號，日後可於右側查詢估價結果。")
+                else:
+                    st.warning(f"⚠️ 上傳已記錄，但雲端同步失敗。單號：**{new_code}**。請聯絡設計師確認。")
     with col2:
         st.write("🔍 **已有單號？查詢估價結果**")
         render_query_section("預售客變")
