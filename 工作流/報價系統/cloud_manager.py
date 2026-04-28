@@ -60,8 +60,18 @@ def get_drive_service():
 
 # === Google Sheets 資料庫操作 ===
 
+def _get_or_create_images_sheet(sh):
+    """取得或建立 images 分頁（存放 base64 圖片資料）"""
+    try:
+        return sh.worksheet("images")
+    except Exception:
+        ws = sh.add_worksheet(title="images", rows=500, cols=3)
+        ws.update([["單號", "圖片類型", "base64資料"]])
+        return ws
+
+
 def load_db_from_cloud():
-    """從 Google Sheet 載入所有資料庫"""
+    """從 Google Sheet 載入所有資料庫，並合併 images 分頁的圖片資料"""
     gc = get_gspread_client()
     if not gc:
         return {}
@@ -79,6 +89,20 @@ def load_db_from_cloud():
                     db[str(code)] = json.loads(raw_json)
                 except Exception:
                     pass
+
+        # 合併 images 分頁的 base64 圖片
+        try:
+            img_ws = sh.worksheet("images")
+            img_records = img_ws.get_all_records()
+            for row in img_records:
+                code = str(row.get("單號", ""))
+                b64 = row.get("base64資料", "")
+                img_type = row.get("圖片類型", "floorplan_b64")
+                if code and b64 and code in db:
+                    db[code][img_type] = b64
+        except Exception:
+            pass  # images 分頁不存在也沒關係
+
         return db
     except Exception as e:
         print(f"Cloud DB Load Error: {e}")
@@ -86,7 +110,7 @@ def load_db_from_cloud():
 
 
 def save_db_to_cloud(db):
-    """將本地資料庫同步回 Google Sheet"""
+    """將本地資料庫同步回 Google Sheet，base64 圖片另存 images 分頁"""
     gc = get_gspread_client()
     if not gc:
         return False
@@ -96,9 +120,15 @@ def save_db_to_cloud(db):
 
         headers = ["單號", "分類", "日期", "案件名稱", "案件地址", "客戶姓名", "客戶電話", "狀態", "雲端連結", "原始資料"]
         rows = [headers]
+        # 收集需要另存的圖片資料
+        image_rows = [["單號", "圖片類型", "base64資料"]]
+        IMAGE_KEYS = {"floorplan_b64"}
 
         for code, info in db.items():
             drive_url = info.get("excel_drive_url") or info.get("floorplan_drive_url") or ""
+
+            # 從主記錄中移除大型 b64 欄位，避免超過 Google Sheets 50,000 字元限制
+            info_for_sheet = {k: v for k, v in info.items() if k not in IMAGE_KEYS}
 
             rows.append([
                 str(code),
@@ -110,11 +140,24 @@ def save_db_to_cloud(db):
                 info.get("client_phone", info.get("phone", "")),
                 info.get("status", ""),
                 drive_url,
-                json.dumps(info, ensure_ascii=False)
+                json.dumps(info_for_sheet, ensure_ascii=False)
             ])
+
+            # 收集圖片
+            for img_key in IMAGE_KEYS:
+                b64_val = info.get(img_key, "")
+                if b64_val:
+                    image_rows.append([str(code), img_key, b64_val])
 
         worksheet.clear()
         worksheet.update(rows)
+
+        # 寫入 images 分頁（base64 圖片資料）
+        if len(image_rows) > 1:  # 有圖片才寫
+            img_ws = _get_or_create_images_sheet(sh)
+            img_ws.clear()
+            img_ws.update(image_rows)
+
         return True
     except Exception as e:
         print(f"Cloud DB Save Error: {e}")
